@@ -7,6 +7,8 @@ const config = require('./config/key');
 
 const {User} = require('./models/User');
 
+const {auth} = require('./middleware/auth');
+
 //application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({extended: true}));
 //application/json
@@ -24,7 +26,7 @@ app.get('/', (req, res) => {
     res.send('Hello World! 안녕하세요 nodemon')
 })
 
-app.post('/register', (req, res) => {
+app.post('/api/users/register', (req, res) => {
     const user = new User(req.body)
     user.save((err, userInfo) => {
         if (err) return res.json({success: false, err})
@@ -34,7 +36,7 @@ app.post('/register', (req, res) => {
     })
 })
 
-app.post('/login', (req, res) => {
+app.post('/api/users/login', (req, res) => {
     // 요청된 email database 에서 찾음
     User.findOne({email: req.body.email}, (err, user) => {
         if (!user) {
@@ -62,6 +64,28 @@ app.post('/login', (req, res) => {
                     userId: user._id
                 })
             })
+        })
+    })
+})
+
+app.get('/api/users/auth', auth, (req, res) => {
+    res.status(200).json({
+        _id: req.user._id,
+        isAdmin: req.user.role === 0 ? false : true, // 0이 아니면 admin
+        isAuth: true,
+        email: req.user.email,
+        name: req.user.name,
+        lastname: req.user.lastname,
+        image: req.user.image
+    })
+})
+
+app.get('/api/users/logout', auth, (req, res) => {
+
+    User.findOneAndUpdate({_id: req.user._id}, {token: ""}, (err, user) => {
+        if (err) return res.json({success: false, err})
+        res.status(200).send({
+            success: true
         })
     })
 })

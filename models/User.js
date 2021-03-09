@@ -63,8 +63,8 @@ userSchema.pre('save', function (next) {
 userSchema.methods.comparePassword = function (plainPw, cb) {
     // plain password 를 암호화해서 db 의 비밀번호와 비교함
     bcrypt.compare(plainPw, this.password, function (err, isMatch) {
-        if(err) return cb(err);
-            cb(null, isMatch)
+        if (err) return cb(err);
+        cb(null, isMatch)
 
     })
 }
@@ -77,10 +77,24 @@ userSchema.methods.generateToken = function (cb) {
 
     // db 에 token 저장
     user.token = token
-    user.save(function (err, user){
-        if(err) return cb(err);
+    user.save(function (err, user) {
+        if (err) return cb(err);
         cb(null, user)
     })
+}
+
+userSchema.statics.findByToken = function (token, cb) {
+    var user = this;
+
+    // token decode
+    jwt.verify(token, 'secretToken', function (err, decoded) {
+        // user._id 를 이용해서 유저를 찾고 client의 토큰과 db의 토큰 비교
+        user.findOne({"_id": decoded, "token": token}, function (err, user) {
+            if (err) return cb(err);
+            cb(null, user)
+        })
+
+    });
 }
 
 const User = mongoose.model('User', userSchema) // 스키마를 모델로 감쌈
