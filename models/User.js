@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
 const saltRounds = 10;
+const jwt = require('jsonwebtoken')
 
 // 스키마 정의
 // 몽구스를 이용해서 스키마를 정의하면 몽고db에 테이블이 생성됨
@@ -16,7 +17,7 @@ const userSchema = mongoose.Schema({
     },
     password: {
         type: String,
-        maxlength: 5
+        minlength: 5
     },
     lastname: {
         type: String,
@@ -57,9 +58,30 @@ userSchema.pre('save', function (next) {
     } else {
         next()
     }
-
-
 })
+
+userSchema.methods.comparePassword = function (plainPw, cb) {
+    // plain password 를 암호화해서 db 의 비밀번호와 비교함
+    bcrypt.compare(plainPw, this.password, function (err, isMatch) {
+        if(err) return cb(err);
+            cb(null, isMatch)
+
+    })
+}
+
+userSchema.methods.generateToken = function (cb) {
+    var user = this;
+
+    //jsonwebtoken 이용하여 토큰 생성
+    var token = jwt.sign(user._id.toHexString(), 'secretToken')
+
+    // db 에 token 저장
+    user.token = token
+    user.save(function (err, user){
+        if(err) return cb(err);
+        cb(null, user)
+    })
+}
 
 const User = mongoose.model('User', userSchema) // 스키마를 모델로 감쌈
 
